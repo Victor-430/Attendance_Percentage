@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly Attendance Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --color-text-primary: #111827;
+      --color-text-secondary: #6B7280;
+      --color-text-tertiary: #9CA3AF;
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #F9FAFB;
+      --color-background-tertiary: #F3F4F6;
+      --color-border-tertiary: #E5E7EB;
+      --color-border-primary: #6B7280;
+      --border-radius-lg: 10px;
+      --border-radius-md: 6px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: #f5f5f5;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      color: var(--color-text-primary);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: var(--border-radius-lg);
+      padding: 2rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .roll-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .roll-group label {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+
+    .roll-group input {
+      width: 120px;
+      padding: 6px 10px;
+      font-size: 14px;
+      border: 1px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      outline: none;
+    }
+
+    .roll-group input:focus {
+      border-color: var(--color-border-primary);
+    }
+
+    .formula-note {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      padding-bottom: 6px;
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: 150px repeat(5, 1fr) 80px;
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      overflow: hidden;
+    }
+
+    .cell {
+      padding: 10px 12px;
+      border-right: 0.5px solid var(--color-border-tertiary);
+      border-bottom: 0.5px solid var(--color-border-tertiary);
+      font-size: 13px;
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+    }
+
+    .cell.no-right  { border-right: none; }
+    .cell.no-bottom { border-bottom: none; }
+    .cell.center    { justify-content: center; }
+
+    .header-cell {
+      background: var(--color-background-secondary);
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      justify-content: center;
+    }
+
+    .row-label {
+      background: var(--color-background-secondary);
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      font-weight: 500;
+    }
+
+    .input-cell { padding: 6px 8px; }
+
+    .input-cell input[type="number"] {
+      width: 100%;
+      font-size: 13px;
+      text-align: center;
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      padding: 5px 4px;
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+      outline: none;
+    }
+
+    .input-cell input[type="number"]:focus {
+      border-color: var(--color-border-primary);
+    }
+
+    .input-cell input[type="number"]:disabled {
+      background: var(--color-background-secondary);
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .closed-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+    }
+
+    .sessions-cell {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      justify-content: center;
+    }
+
+    /* Weekly total rows */
+    .wk {
+      background: #EAF3DE;
+      color: #3B6D11;
+      font-weight: 500;
+      border-bottom: 0.5px solid #C0DD97;
+    }
+
+    .wk.no-bottom { border-bottom: none; }
+
+    .wk-label {
+      background: #EAF3DE;
+      color: #3B6D11;
+      font-weight: 500;
+      border-right: 0.5px solid #C0DD97;
+      border-bottom: 0.5px solid #C0DD97;
+      font-size: 12px;
+    }
+
+    .wk-label.no-bottom { border-bottom: none; }
+
+    /* Cumulative total column */
+    .cum {
+      background: #C0DD97;
+      color: #27500A;
+      font-weight: 500;
+      border-bottom: 0.5px solid #97C459;
+      font-size: 13px;
+    }
+
+    .cum.no-bottom { border-bottom: none; }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 1.5rem;
+    }
+
+    .metric {
+      background: var(--color-background-secondary);
+      border-radius: var(--border-radius-md);
+      padding: 14px 16px;
+    }
+
+    .metric .label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .metric .value {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+    }
+
+    .metric .value.good { color: #1D9E75; }
+    .metric .value.warn { color: #D85A30; }
+    .metric .value.na   { color: var(--color-text-tertiary); font-size: 16px; }
+
+    .dim { opacity: 0.4; }
+
+    @media (max-width: 680px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .formula-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Weekly Attendance Tracker</h2>
+    <p class="subtitle">Enter the attendance figure for each day. Each entry is split into morning and afternoon sessions automatically.</p>
+
+    <div class="top-bar">
+      <div class="roll-group">
+        <label for="onRoll">Number on roll</label>
+        <input type="number" id="onRoll" min="1" placeholder="e.g. 120" oninput="recalc()" />
+      </div>
+      <div class="formula-note">Attendance % = (Total sessions ÷ (Sessions open × No. on roll)) × 100</div>
+    </div>
+
+    <div class="grid">
+
+      <!-- ── Header row ── -->
+      <div class="cell header-cell row-label" style="border-radius:var(--border-radius-lg) 0 0 0;"></div>
+      <div class="cell header-cell" id="hMon">Mon</div>
+      <div class="cell header-cell" id="hTue">Tue</div>
+      <div class="cell header-cell" id="hWed">Wed</div>
+      <div class="cell header-cell" id="hThu">Thu</div>
+      <div class="cell header-cell" id="hFri">Fri</div>
+      <div class="cell header-cell no-right" style="border-radius:0 var(--border-radius-lg) 0 0; font-size:11px; color:var(--color-text-tertiary);">Total</div>
+
+      <!-- ── Open toggles ── -->
+      <div class="cell row-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-tertiary);background:var(--color-background-tertiary);">Open?</div>
+      <div class="cell input-cell center" id="togMon"><label class="closed-toggle"><input type="checkbox" checked onchange="toggleDay(0)"> Open</label></div>
+      <div class="cell input-cell center" id="togTue"><label class="closed-toggle"><input type="checkbox" checked onchange="toggleDay(1)"> Open</label></div>
+      <div class="cell input-cell center" id="togWed"><label class="closed-toggle"><input type="checkbox" checked onchange="toggleDay(2)"> Open</label></div>
+      <div class="cell input-cell center" id="togThu"><label class="closed-toggle"><input type="checkbox" checked onchange="toggleDay(3)"> Open</label></div>
+      <div class="cell input-cell center" id="togFri"><label class="closed-toggle"><input type="checkbox" checked onchange="toggleDay(4)"> Open</label></div>
+      <div class="cell no-right" style="background:var(--color-background-secondary);"></div>
+
+      <!-- ── Attendance entry ── -->
+      <div class="cell row-label">Attendance</div>
+      <div class="cell input-cell" id="cMon"><input type="number" min="0" placeholder="0" oninput="recalc()"></div>
+      <div class="cell input-cell" id="cTue"><input type="number" min="0" placeholder="0" oninput="recalc()"></div>
+      <div class="cell input-cell" id="cWed"><input type="number" min="0" placeholder="0" oninput="recalc()"></div>
+      <div class="cell input-cell" id="cThu"><input type="number" min="0" placeholder="0" oninput="recalc()"></div>
+      <div class="cell input-cell" id="cFri"><input type="number" min="0" placeholder="0" oninput="recalc()"></div>
+      <div class="cell no-right" style="background:var(--color-background-secondary);"></div>
+
+      <!-- ── × 2 sessions ── -->
+      <div class="cell row-label" style="font-size:12px;color:var(--color-text-tertiary);">× 2 sessions</div>
+      <div class="cell sessions-cell" id="sMon">—</div>
+      <div class="cell sessions-cell" id="sTue">—</div>
+      <div class="cell sessions-cell" id="sWed">—</div>
+      <div class="cell sessions-cell" id="sThu">—</div>
+      <div class="cell sessions-cell" id="sFri">—</div>
+      <div class="cell no-right" style="background:var(--color-background-secondary);"></div>
+
+      <!-- ── Morning total ── -->
+      <div class="cell wk-label">Morning total</div>
+      <div class="cell wk center" id="wkMornMon">—</div>
+      <div class="cell wk center" id="wkMornTue">—</div>
+      <div class="cell wk center" id="wkMornWed">—</div>
+      <div class="cell wk center" id="wkMornThu">—</div>
+      <div class="cell wk center" id="wkMornFri">—</div>
+      <div class="cell cum center no-right" id="cumMorn">—</div>
+
+      <!-- ── Afternoon total ── -->
+      <div class="cell wk-label">Afternoon total</div>
+      <div class="cell wk center" id="wkAftMon">—</div>
+      <div class="cell wk center" id="wkAftTue">—</div>
+      <div class="cell wk center" id="wkAftWed">—</div>
+      <div class="cell wk center" id="wkAftThu">—</div>
+      <div class="cell wk center" id="wkAftFri">—</div>
+      <div class="cell cum center no-right" id="cumAft">—</div>
+
+      <!-- ── Week total ── -->
+      <div class="cell wk-label no-bottom" style="border-radius:0 0 0 var(--border-radius-lg);">Week total</div>
+      <div class="cell wk center no-bottom" id="wkTotMon">—</div>
+      <div class="cell wk center no-bottom" id="wkTotTue">—</div>
+      <div class="cell wk center no-bottom" id="wkTotWed">—</div>
+      <div class="cell wk center no-bottom" id="wkTotThu">—</div>
+      <div class="cell wk center no-bottom" id="wkTotFri">—</div>
+      <div class="cell cum center no-right no-bottom" id="cumTotal" style="border-radius:0 0 var(--border-radius-lg) 0;">—</div>
+
+    </div><!-- /.grid -->
+
+    <div class="summary-grid">
+      <div class="metric">
+        <div class="label">No. on roll</div>
+        <div class="value" id="smRoll">—</div>
+      </div>
+      <div class="metric">
+        <div class="label">Sessions open</div>
+        <div class="value" id="smSessions">—</div>
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:3px;">2 per open day</div>
+      </div>
+      <div class="metric">
+        <div class="label">Total sessions attended</div>
+        <div class="value" id="smTotal">—</div>
+      </div>
+      <div class="metric">
+        <div class="label">Attendance %</div>
+        <div class="value na" id="smPct">—</div>
+      </div>
+    </div>
+  </div><!-- /.container -->
+
+  <script>
+    const days   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const dayOpen = [true, true, true, true, true];
+
+    function toggleDay(i) {
+      const d  = days[i];
+      const cb = document.querySelector('#tog' + d + ' input');
+      dayOpen[i] = cb.checked;
+      const inp = document.querySelector('#c' + d + ' input');
+
+      if (!dayOpen[i]) {
+        inp.disabled = true;
+        inp.value    = '';
+        document.getElementById('h' + d).classList.add('dim');
+        document.getElementById('c' + d).classList.add('dim');
+        ['s', 'wkMorn', 'wkAft', 'wkTot'].forEach(prefix => {
+          const el = document.getElementById(prefix + d);
+          if (el) el.textContent = '—';
+        });
+      } else {
+        inp.disabled = false;
+        document.getElementById('h' + d).classList.remove('dim');
+        document.getElementById('c' + d).classList.remove('dim');
+      }
+      recalc();
+    }
+
+    function recalc() {
+      let sessionsOpen  = 0;
+      let totalSessions = 0;
+      let mornWeek      = 0;
+      let aftWeek       = 0;
+
+      days.forEach((d, i) => {
+        if (!dayOpen[i]) {
+          ['s', 'wkMorn', 'wkAft', 'wkTot'].forEach(prefix => {
+            const el = document.getElementById(prefix + d);
+            if (el) el.textContent = '—';
+          });
+          return;
+        }
+
+        const inp      = document.querySelector('#c' + d + ' input');
+        const v        = parseInt(inp.value) || 0;
+        const sessions = v * 2;
+        // Since sessions = v * 2, morning and afternoon are always equal (both = v)
+        const morn = Math.ceil(sessions / 2);
+        const aft  = Math.floor(sessions / 2);
+
+        mornWeek      += morn;
+        aftWeek       += aft;
+        totalSessions += sessions;
+        sessionsOpen  += 2;
+
+        document.getElementById('s'      + d).textContent = v > 0 ? sessions : '—';
+        document.getElementById('wkMorn' + d).textContent = v > 0 ? morn     : '—';
+        document.getElementById('wkAft'  + d).textContent = v > 0 ? aft      : '—';
+        document.getElementById('wkTot'  + d).textContent = v > 0 ? sessions : '—';
+      });
+
+      // Cumulative column
+      document.getElementById('cumMorn').textContent  = mornWeek      || '—';
+      document.getElementById('cumAft').textContent   = aftWeek       || '—';
+      document.getElementById('cumTotal').textContent = totalSessions || '—';
+
+      // Summary cards
+      const onRoll = parseInt(document.getElementById('onRoll').value) || 0;
+      document.getElementById('smRoll').textContent     = onRoll       || '—';
+      document.getElementById('smSessions').textContent = sessionsOpen;
+      document.getElementById('smTotal').textContent    = totalSessions || '—';
+
+      const pctEl = document.getElementById('smPct');
+      if (onRoll > 0 && sessionsOpen > 0) {
+        const pct = (totalSessions / (sessionsOpen * onRoll)) * 100;
+        pctEl.textContent = pct.toFixed(1) + '%';
+        pctEl.className   = 'value ' + (pct >= 90 ? 'good' : 'warn');
+      } else {
+        pctEl.textContent = '—';
+        pctEl.className   = 'value na';
+      }
+    }
+  </script>
+</body>
+</html>
